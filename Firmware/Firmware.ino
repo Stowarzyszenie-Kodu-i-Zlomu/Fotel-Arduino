@@ -1,10 +1,8 @@
-
 // Include Libraries
 #include "Arduino.h"
 #include "NewPing.h"
 #include "LiquidCrystal.h"
 #include "Potentiometer.h"
-
 
 // Pin Definitions
 #define HCSR04_PIN_TRIG	3
@@ -19,21 +17,21 @@
 #define RELAYMODULE4CH_PIN_IN1	10
 #define RELAYMODULE4CH_PIN_IN2	11
 
-
-
 // Global variables and defines
 //define an array for the 4ch relay module pins
 int RelayModule6chPins[] = { RELAYMODULE4CH_PIN_IN1, RELAYMODULE4CH_PIN_IN2 };
+
 // object initialization
 NewPing hcsr04(HCSR04_PIN_TRIG,HCSR04_PIN_ECHO);
 LiquidCrystal lcd(LCD_PIN_RS,LCD_PIN_E,LCD_PIN_DB4,LCD_PIN_DB5,LCD_PIN_DB6,LCD_PIN_DB7);
 Potentiometer potentiometer_5v(POTENTIOMETER_5V_PIN_SIG);
 
-
 // define vars for testing menu
-const int timeout = 10000;       //define timeout of 10 sec
+const int timeout = 3000;       //define timeout of 10 sec
 char menuOption = 0;
 long time0;
+
+
 
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
@@ -46,8 +44,15 @@ void setup()
     
     // set up the LCD's number of columns and rows
     lcd.begin(16, 2);
+
+    // set up the Relay
     pinMode(RELAYMODULE4CH_PIN_IN1, OUTPUT);
     pinMode(RELAYMODULE4CH_PIN_IN2, OUTPUT);
+    for (int i = 0; i < 2; i++) { 
+      digitalWrite(RelayModule6chPins[i],HIGH);
+    }
+
+    // show the menu (check in Serial Monitor)
     menuOption = menu();
     
 }
@@ -55,50 +60,52 @@ void setup()
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
 void loop() 
 {
-    
-    
     if(menuOption == '1') {
-    // Ultrasonic Sensor - HC-SR04 - Test Code
-    // Read distance measurment from UltraSonic sensor           
-    int hcsr04Dist = hcsr04.ping_cm();
-    delay(10);
-    Serial.print(F("Distance: ")); Serial.print(hcsr04Dist); Serial.println(F("[cm]"));
-
+      // Ultrasonic Sensor - HC-SR04 - Test Code
+      // Read distance measurment from UltraSonic sensor           
+      int hcsr04Dist = hcsr04.ping_cm();
+      delay(10);
+      Serial.print(F("Distance: ")); Serial.print(hcsr04Dist); Serial.println(F("[cm]"));
     }
+
     else if(menuOption == '2') {
-    // LCD 16x2 - Test Code
-    // Print a message to the LCD.
-    lcd.setCursor(0, 0);
-    lcd.print("Circuito Rocks !");
-    // Turn off the display:
-    lcd.noDisplay();
-    delay(500);
-    // Turn on the display:
-    lcd.display();
-    delay(500);
-    }
-    else if(menuOption == '3') {
-    // Rotary Potentiometer - 10k Ohm, Linear - Test Code
-    int potentiometer_5vVal = potentiometer_5v.read();
-    Serial.print(F("Val: ")); Serial.println(potentiometer_5vVal);
+      // LCD 16x2 - Test Code
+      // Print a message to the LCD.
+      lcd.setCursor(0, 0);
+      lcd.print("Stowarzyszenie");
+      lcd.setCursor(0, 1);
+      lcd.print("Kodu i Zlomu");
 
+      // Turn off the display:
+      lcd.noDisplay();
+      delay(50);
+
+      // Turn on the display:
+      lcd.display();
+      delay(50);
     }
+
+    else if(menuOption == '3') {
+      // Rotary Potentiometer - 10k Ohm, Linear - Test Code
+      int potentiometer_5vVal = potentiometer_5v.read();
+      Serial.print(F("Val: ")); Serial.println(potentiometer_5vVal);
+    }
+
     else if(menuOption == '4') {
-    // Relay Module 6-Ch - Test Code
-    //This loop will turn on and off each relay in the array for 0.5 sec
-    for (int i = 0; i < 4; i++) { 
-    digitalWrite(RelayModule6chPins[i],HIGH);
-    delay(500);
-    digitalWrite(RelayModule6chPins[i],LOW);
-    delay(500);
-    }
+      // Relay Module 6-Ch - Test Code
+      //This loop will turn on and off each relay in the array for 0.1 sec and then wait 0.7 sec
+      for (int i = 0; i < 2; i++) { 
+        digitalWrite(RelayModule6chPins[i],LOW);
+        delay(100);
+        digitalWrite(RelayModule6chPins[i],HIGH);
+        delay(700);
+      }
     }
     
     if (millis() - time0 > timeout)
     {
         menuOption = menu();
     }
-    
 }
 
 
@@ -107,47 +114,39 @@ void loop()
 // Follow serial monitor for instrcutions
 char menu()
 {
+  Serial.println(F("\nWhich component would you like to test?"));
+  Serial.println(F("(1) Ultrasonic Sensor - HC-SR04"));
+  Serial.println(F("(2) LCD 16x2"));
+  Serial.println(F("(3) Rotary Potentiometer - 10k Ohm, Linear"));
+  Serial.println(F("(4) Relay Module 4-Ch"));
+  Serial.println(F("(menu) send anything else or press on board reset button\n"));
+  while (!Serial.available());
 
-    Serial.println(F("\nWhich component would you like to test?"));
-    Serial.println(F("(1) Ultrasonic Sensor - HC-SR04"));
-    Serial.println(F("(2) LCD 16x2"));
-    Serial.println(F("(3) Rotary Potentiometer - 10k Ohm, Linear"));
-    Serial.println(F("(4) Relay Module 4-Ch"));
-    Serial.println(F("(menu) send anything else or press on board reset button\n"));
-    while (!Serial.available());
-
-    // Read data from serial monitor if received
-    while (Serial.available()) 
-    {
-        char c = Serial.read();
-        if (isAlphaNumeric(c)) 
-        {   
-            
-            if(c == '1') 
-    			Serial.println(F("Now Testing Ultrasonic Sensor - HC-SR04"));
-    		else if(c == '2') 
-    			Serial.println(F("Now Testing LCD 16x2"));
-    		else if(c == '3') 
-    			Serial.println(F("Now Testing Rotary Potentiometer - 10k Ohm, Linear"));
-    		else if(c == '4') 
-    			Serial.println(F("Now Testing Relay Module 4-Ch"));
-            else
-            {
-                Serial.println(F("illegal input!"));
-                return 0;
-            }
-            time0 = millis();
-            return c;
-        }
+  // Read data from serial monitor if received
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (isAlphaNumeric(c)) {     
+      if(c == '1') 
+  			Serial.println(F("Now Testing Ultrasonic Sensor - HC-SR04"));
+  		else if(c == '2') 
+    		Serial.println(F("Now Testing LCD 16x2"));
+    	else if(c == '3') 
+  			Serial.println(F("Now Testing Rotary Potentiometer - 10k Ohm, Linear"));
+  		else if(c == '4') 
+    		Serial.println(F("Now Testing Relay Module 4-Ch"));
+      else {
+        Serial.println(F("illegal input!"));
+        return 0;
+      }
+      time0 = millis();
+      return c;
     }
+  }
 }
 
 /*******************************************************
 
-*    Circuito.io is an automatic generator of schematics and code for off
-*    the shelf hardware combinations.
-
-*    Copyright (C) 2016 Roboplan Technologies Ltd.
+*    Stowarzyszenie Kodu i Złomu
 
 *    This program is free software: you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
