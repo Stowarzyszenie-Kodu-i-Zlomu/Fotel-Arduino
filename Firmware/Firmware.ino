@@ -32,6 +32,13 @@ char menuOption = 0;
 long time0;
 
 
+// Function definitions
+void setup();
+void loop();
+void ultrasonicSensor();
+int lcDisplay(String line1, String line2);
+void potentiometer();
+void relayModule();
 
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
@@ -54,57 +61,33 @@ void setup()
 
     // show the menu (check in Serial Monitor)
     menuOption = menu();
-    
 }
 
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
 void loop() 
 {
-    if(menuOption == '1') {
-      // Ultrasonic Sensor - HC-SR04 - Test Code
-      // Read distance measurment from UltraSonic sensor           
-      int hcsr04Dist = hcsr04.ping_cm();
-      delay(10);
-      Serial.print(F("Distance: ")); Serial.print(hcsr04Dist); Serial.println(F("[cm]"));
+    switch(menuOption){
+      case '1': 
+        ultrasonicSensor();
+        break;
+
+      case '2':
+        lcDisplay("Stowarzys", "Kodu i Zlomu");
+        break;
+
+      case '3':
+        potentiometer();
+        break;
+
+      case '4':
+        relayModule();
+        break;
     }
-
-    else if(menuOption == '2') {
-      // LCD 16x2 - Test Code
-      // Print a message to the LCD.
-      lcd.setCursor(0, 0);
-      lcd.print("Stowarzyszenie");
-      lcd.setCursor(0, 1);
-      lcd.print("Kodu i Zlomu");
-
-      // Turn off the display:
-      lcd.noDisplay();
-      delay(50);
-
-      // Turn on the display:
-      lcd.display();
-      delay(50);
-    }
-
-    else if(menuOption == '3') {
-      // Rotary Potentiometer - 10k Ohm, Linear - Test Code
-      int potentiometer_5vVal = potentiometer_5v.read();
-      Serial.print(F("Val: ")); Serial.println(potentiometer_5vVal);
-    }
-
-    else if(menuOption == '4') {
-      // Relay Module 6-Ch - Test Code
-      //This loop will turn on and off each relay in the array for 0.1 sec and then wait 0.7 sec
-      for (int i = 0; i < 2; i++) { 
-        digitalWrite(RelayModule6chPins[i],LOW);
-        delay(100);
-        digitalWrite(RelayModule6chPins[i],HIGH);
-        delay(700);
-      }
-    }
-    
+  
     if (millis() - time0 > timeout)
     {
         menuOption = menu();
+            
     }
 }
 
@@ -126,61 +109,79 @@ char menu()
   while (Serial.available()) {
     char c = Serial.read();
     if (isAlphaNumeric(c)) {     
-      if(c == '1') 
-  			Serial.println(F("Now Testing Ultrasonic Sensor - HC-SR04"));
-  		else if(c == '2') 
-    		Serial.println(F("Now Testing LCD 16x2"));
-    	else if(c == '3') 
-  			Serial.println(F("Now Testing Rotary Potentiometer - 10k Ohm, Linear"));
-  		else if(c == '4') 
-    		Serial.println(F("Now Testing Relay Module 4-Ch"));
-      else {
-        Serial.println(F("illegal input!"));
-        return 0;
+      switch(c){
+        case '1':
+  			  Serial.println(F("Now Testing Ultrasonic Sensor - HC-SR04"));
+          break;
+
+        case '2':
+    		  Serial.println(F("Now Testing LCD 16x2"));
+          break;
+
+        case '3':
+          Serial.println(F("Now Testing Rotary Potentiometer - 10k Ohm, Linear"));
+          break;
+
+        case '4':
+          Serial.println(F("Now Testing Relay Module 4-Ch"));
+          break;
+
+        default:
+          Serial.println(F("illegal input!"));
+          return 0;
       }
+
       time0 = millis();
       return c;
     }
   }
 }
 
-/*******************************************************
+void ultrasonicSensor(){
+    // Ultrasonic Sensor - HC-SR04 - Test Code
+    // Read distance measurment from UltraSonic sensor           
+    int hcsr04Dist = hcsr04.ping_cm();
+    delay(10);
+    Serial.print(F("Distance: ")); Serial.print(hcsr04Dist); Serial.println(F("[cm]"));
+}
 
-*    Stowarzyszenie Kodu i Złomu
+// returns 1 on failure and 0 on success
+int lcDisplay(String line1, String line2){
+    if(line1.length() > 16 && line2.length() > 16){
+      Serial.print(F("Length of each line must be at most 16 characters"));
+      return 1;
+    }
+    // LCD 16x2 - Test Code
+    // Print a message to the LCD.
+    lcd.setCursor(0, 0);
+    lcd.print(line1);
+    lcd.setCursor(0, 1);
+    lcd.print(line2);
 
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation, either version 3 of the License, or
-*    (at your option) any later version.
+    // Turn off the display:
+    // lcd.noDisplay();
+    // delay(50);
 
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU General Public License for more details.
+    // Turn on the display:
+    // lcd.display();
+    // delay(50);
 
-*    You should have received a copy of the GNU General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    return 0;
+}
 
-*    In addition, and without limitation, to the disclaimers of warranties 
-*    stated above and in the GNU General Public License version 3 (or any 
-*    later version), Roboplan Technologies Ltd. ("Roboplan") offers this 
-*    program subject to the following warranty disclaimers and by using 
-*    this program you acknowledge and agree to the following:
-*    THIS PROGRAM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, AND 
-*    WITHOUT WARRANTIES OF ANY KIND EITHER EXPRESS OR IMPLIED.  ROBOPLAN 
-*    HEREBY DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT 
-*    NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, TITLE, FITNESS 
-*    FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND THOSE ARISING BY 
-*    STATUTE OR FROM A COURSE OF DEALING OR USAGE OF TRADE. 
-*    YOUR RELIANCE ON, OR USE OF THIS PROGRAM IS AT YOUR SOLE RISK.
-*    ROBOPLAN DOES NOT GUARANTEE THAT THE PROGRAM WILL BE FREE OF, OR NOT 
-*    SUSCEPTIBLE TO, BUGS, SECURITY BREACHES, OR VIRUSES. ROBOPLAN DOES 
-*    NOT WARRANT THAT YOUR USE OF THE PROGRAM, INCLUDING PURSUANT TO 
-*    SCHEMATICS, INSTRUCTIONS OR RECOMMENDATIONS OF ROBOPLAN, WILL BE SAFE 
-*    FOR PERSONAL USE OR FOR PRODUCTION OR COMMERCIAL USE, WILL NOT 
-*    VIOLATE ANY THIRD PARTY RIGHTS, WILL PROVIDE THE INTENDED OR DESIRED
-*    RESULTS, OR OPERATE AS YOU INTENDED OR AS MAY BE INDICATED BY ROBOPLAN. 
-*    YOU HEREBY WAIVE, AGREE NOT TO ASSERT AGAINST, AND RELEASE ROBOPLAN, 
-*    ITS LICENSORS AND AFFILIATES FROM, ANY CLAIMS IN CONNECTION WITH ANY OF 
-*    THE ABOVE. 
-********************************************************/
+void potentiometer(){
+    // Rotary Potentiometer - 10k Ohm, Linear - Test Code
+    int potentiometer_5vVal = potentiometer_5v.read();
+    Serial.print(F("Val: ")); Serial.println(potentiometer_5vVal);
+}
+
+void relayModule(){
+    // Relay Module 6-Ch - Test Code
+    // This loop will turn on and off each relay in the array for 0.1 sec and then wait 0.7 sec
+    for (int i = 0; i < 2; i++) { 
+      digitalWrite(RelayModule6chPins[i],LOW);
+      delay(100);
+      digitalWrite(RelayModule6chPins[i],HIGH);
+      delay(700);
+    }
+ }
