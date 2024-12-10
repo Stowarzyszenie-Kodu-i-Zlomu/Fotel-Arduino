@@ -1,6 +1,5 @@
 // Include Libraries
 #include "Arduino.h"
-#include "NewPing.h"
 #include "LiquidCrystal.h"
 #include "Potentiometer.h"
 
@@ -22,7 +21,6 @@
 int RelayModule6chPins[] = { RELAYMODULE4CH_PIN_IN1, RELAYMODULE4CH_PIN_IN2 };
 
 // object initialization
-NewPing hcsr04(HCSR04_PIN_TRIG,HCSR04_PIN_ECHO);
 LiquidCrystal lcd(LCD_PIN_RS,LCD_PIN_E,LCD_PIN_DB4,LCD_PIN_DB5,LCD_PIN_DB6,LCD_PIN_DB7);
 Potentiometer potentiometer_5v(POTENTIOMETER_5V_PIN_SIG);
 
@@ -55,6 +53,11 @@ void setup()
     // set up the Relay
     pinMode(RELAYMODULE4CH_PIN_IN1, OUTPUT);
     pinMode(RELAYMODULE4CH_PIN_IN2, OUTPUT);
+
+    // set up the ultrasonic sensor
+    pinMode(HCSR04_PIN_TRIG, OUTPUT);
+    pinMode(HCSR04_PIN_ECHO, INPUT);
+
     for (int i = 0; i < 2; i++) { 
       digitalWrite(RelayModule6chPins[i],HIGH);
     }
@@ -137,12 +140,41 @@ char menu()
   }
 }
 
+// returns distance in cm as float
+float ultrasonicDistance(){
+    // trig pin controls sending pulses
+    // echo pin turns on when waves bounce back and hit it
+
+    // make sure trig pin is low 
+    digitalWrite(HCSR04_PIN_TRIG, LOW);  
+    delayMicroseconds(2);  
+
+    // send pulses
+    digitalWrite(HCSR04_PIN_TRIG, HIGH);  
+    delayMicroseconds(10);
+
+    // stop sending pulses
+    digitalWrite(HCSR04_PIN_TRIG, LOW);
+
+    // wait for echo pin to send HIGH signal
+    float duration = pulseIn(HCSR04_PIN_ECHO, HIGH);  
+
+    // speed = distance / time -> distance = time * speed
+    // divided by 2 because it needs to travel back
+
+    // in cm / microsecond
+    float speedOfSound = 0.0343;
+
+    float distance = (duration * speedOfSound) / 2;  
+    return distance;
+}
+
 void ultrasonicSensor(){
     // Ultrasonic Sensor - HC-SR04 - Test Code
     // Read distance measurment from UltraSonic sensor           
-    int hcsr04Dist = hcsr04.ping_cm();
+    float dist = ultrasonicDistance();
     delay(10);
-    Serial.print(F("Distance: ")); Serial.print(hcsr04Dist); Serial.println(F("[cm]"));
+    Serial.print(F("Distance: ")); Serial.print(dist); Serial.println(F("[cm]"));
 }
 
 // returns 1 on failure and 0 on success
