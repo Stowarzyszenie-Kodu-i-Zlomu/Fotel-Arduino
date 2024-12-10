@@ -72,7 +72,7 @@ void loop()
         break;
 
       case '2':
-        lcDisplay("Stowarzys", "Kodu i Zlomu");
+        lcDisplay("Stowarzyszenie", "Kodu i Zlomu");
         break;
 
       case '3':
@@ -157,14 +157,6 @@ int lcDisplay(String line1, String line2){
     lcd.print(line1);
     lcd.setCursor(0, 1);
     lcd.print(line2);
-
-    // Turn off the display:
-    // lcd.noDisplay();
-    // delay(50);
-
-    // Turn on the display:
-    // lcd.display();
-    // delay(50);
 
     return 0;
 }
