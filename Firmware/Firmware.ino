@@ -28,7 +28,8 @@ Potentiometer potentiometer_5v(POTENTIOMETER_5V_PIN_SIG);
 const int timeout = 3000;       //define timeout of 10 sec
 char menuOption = 0;
 long time0;
-
+int offset = 30;                //dolna granica mierzenia sensora
+int skok = 50;                  //skok siłownika
 
 // Function definitions
 void setup();
@@ -58,90 +59,29 @@ void setup()
     pinMode(HCSR04_PIN_TRIG, OUTPUT);
     pinMode(HCSR04_PIN_ECHO, INPUT);
 
+    // Turn off all of the relay channels
     for (int i = 0; i < 2; i++) { 
       digitalWrite(RelayModule6chPins[i],HIGH);
     }
-
-    // show the menu (check in Serial Monitor)
-    menuOption = menu();
 }
 
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
 void loop() 
 {
-    switch(menuOption){
-      case '1': 
-        ultrasonicSensor();
-        break;
+  bool retracting = false;
+  bool extending = false;
+  int target = getTarget();
+  int distance = ultrasonicDistance();
+  int diff = target-distance;
 
-      case '2':
-        lcDisplay("Stowarzyszenie", "Kodu i Zlomu");
-        break;
+  // Kod do rozciągania i chowania siłownika
 
-      case '3':
-        potentiometer();
-        break;
-
-      case '4':
-        relayModule();
-        break;
-    }
-  
-    if (millis() - time0 > timeout)
-    {
-        menuOption = menu();
-            
-    }
+  lcdStats(target, distance, retracting, extending);
+  delay(100);
 }
 
-
-
-// Menu function for selecting the components to be tested
-// Follow serial monitor for instrcutions
-char menu()
-{
-  Serial.println(F("\nWhich component would you like to test?"));
-  Serial.println(F("(1) Ultrasonic Sensor - HC-SR04"));
-  Serial.println(F("(2) LCD 16x2"));
-  Serial.println(F("(3) Rotary Potentiometer - 10k Ohm, Linear"));
-  Serial.println(F("(4) Relay Module 4-Ch"));
-  Serial.println(F("(menu) send anything else or press on board reset button\n"));
-  while (!Serial.available());
-
-  // Read data from serial monitor if received
-  while (Serial.available()) {
-    char c = Serial.read();
-    if (isAlphaNumeric(c)) {     
-      switch(c){
-        case '1':
-  			  Serial.println(F("Now Testing Ultrasonic Sensor - HC-SR04"));
-          break;
-
-        case '2':
-    		  Serial.println(F("Now Testing LCD 16x2"));
-          break;
-
-        case '3':
-          Serial.println(F("Now Testing Rotary Potentiometer - 10k Ohm, Linear"));
-          break;
-
-        case '4':
-          Serial.println(F("Now Testing Relay Module 4-Ch"));
-          break;
-
-        default:
-          Serial.println(F("illegal input!"));
-          return 0;
-      }
-
-      time0 = millis();
-      return c;
-    }
-  }
-}
-
-// returns distance in cm as float
-float ultrasonicDistance(){
+// returns distance in mm as int
+int ultrasonicDistance(){
     // trig pin controls sending pulses
     // echo pin turns on when waves bounce back and hit it
 
@@ -165,38 +105,63 @@ float ultrasonicDistance(){
     // in cm / microsecond
     float speedOfSound = 0.0343;
 
-    float distance = (duration * speedOfSound) / 2;  
-    return distance;
+    float distancef = (duration * speedOfSound) / 2;  
+
+    // convert cm to mm
+    int distance = floor(distancef*10);
+
+    //set limits (sensor works from certain distance - offset), max distance is skok siłownika
+    if(distance>offset){
+      if(distance>skok+offset){
+        return skok;
+      } else {
+        return distance-offset;
+      }
+    } else {
+      return 0;
+    }
 }
 
 void ultrasonicSensor(){
     // Ultrasonic Sensor - HC-SR04 - Test Code
     // Read distance measurment from UltraSonic sensor           
-    float dist = ultrasonicDistance();
+    int dist = ultrasonicDistance();
     delay(10);
-    Serial.print(F("Distance: ")); Serial.print(dist); Serial.println(F("[cm]"));
+    Serial.print(F("Distance: ")); Serial.print(dist); Serial.println(F("[mm]"));
 }
 
-// returns 1 on failure and 0 on success
-int lcDisplay(String line1, String line2){
-    if(line1.length() > 16 && line2.length() > 16){
-      Serial.print(F("Length of each line must be at most 16 characters"));
-      return 1;
-    }
-    // LCD 16x2 - Test Code
-    // Print a message to the LCD.
-    lcd.setCursor(0, 0);
-    lcd.print(line1);
-    lcd.setCursor(0, 1);
-    lcd.print(line2);
 
-    return 0;
+// Reads potentiometer value and maps it from 0 to skok siłownika
+int getTarget(){
+  int target = potentiometer_5v.read()/20;
+  if(target>skok){
+    target = skok;
+  }
+  return skok-target;
 }
 
-void potentiometer(){
-    // Rotary Potentiometer - 10k Ohm, Linear - Test Code
-    int potentiometer_5vVal = potentiometer_5v.read();
-    Serial.print(F("Val: ")); Serial.println(potentiometer_5vVal);
+// Print target distance, piston distance, show if retracting/extending on lcd
+void lcdStats(int target, int distance, bool retracting, bool extending){
+  // First row
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Trgt:");
+  lcd.setCursor(6, 0);
+  lcd.print(target);
+  if(retracting){
+    lcd.setCursor(12, 0);
+    lcd.print("+");
+  }
+
+  // Second row
+  lcd.setCursor(0, 1);
+  lcd.print("Dist:");
+  lcd.setCursor(6, 1);
+  lcd.print(distance);
+  if(extending){
+    lcd.setCursor(12, 1);
+    lcd.print("-");
+  }
 }
 
 void relayModule(){
