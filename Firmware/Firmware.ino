@@ -28,8 +28,8 @@ Potentiometer potentiometer_5v(POTENTIOMETER_5V_PIN_SIG);
 const int timeout = 3000;       //define timeout of 10 sec
 char menuOption = 0;
 long time0;
-int offset = 30;                //dolna granica mierzenia sensora
-int skok = 50;                  //skok siłownika
+int offset = 19;                //dolna granica mierzenia sensora                                                                 
+int skok = 80;                  //skok siłownika
 
 // Function definitions
 void setup();
@@ -133,7 +133,7 @@ void ultrasonicSensor(){
 
 // Reads potentiometer value and maps it from 0 to skok siłownika
 int getTarget(){
-  int target = potentiometer_5v.read()/20;
+  int target = potentiometer_5v.read()/(1022/skok);
   if(target>skok){
     target = skok;
   }
