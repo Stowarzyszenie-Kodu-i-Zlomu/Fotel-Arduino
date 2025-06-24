@@ -3,6 +3,7 @@
 #include <vl53l4cd_class.h>
 #include <stdint.h>
 #include <PID_v1.h>
+#include <Servo.h>
 
 #define MOSFET_PIN_SIG1	10
 #define MOSFET_PIN_SIG2	11
@@ -11,16 +12,17 @@
 
 
 // define constant values
-const int offset = 40;                // distance from sensor to base position of satellite                                                         
+const int offset = 40;                // distance from sensor to base position of satellite
 const int stroke = 500;               // pneumatic cylinder stroke
-const int deadzone = 30;              // deadzone
+const int deadzone = 1;              // deadzone
 const int sensorTiming = 0;
 const int targetTiming = 300;
 const int infoTiming = 5;
 
-const double a1Kp = 1.0;          // actuator 1 PID tuning
-const double a1Ki = 0.0;
-const double a1Kd = 0.01;
+const double a1Kp = 0.11;          // actuator 1 PID tuning //0.1
+const double a1Ki = 0.000;
+const double a1Kd = 0.001; //0.001
+// K krytyczne = 0.175, Tu = 0.0025s, kP = 0.105
 
 
 // define variables
@@ -40,8 +42,9 @@ int MOSFETPins[] = { MOSFET_PIN_SIG1, MOSFET_PIN_SIG2 };
 
 
 // object initialization
+Servo servo;
 VL53L4CD sensor_vl53l4cd_sat(&DEV_I2C, A1);
-PID actuatorPID(&error, &actuatorTarget, &target, a1Kp, a1Ki, a1Kd, DIRECT);
+PID actuatorPID(&distance, &actuatorTarget, &target, a1Kp, a1Ki, a1Kd, DIRECT);
 
 
 
@@ -49,11 +52,12 @@ PID actuatorPID(&error, &actuatorTarget, &target, a1Kp, a1Ki, a1Kd, DIRECT);
 
 
 
-void setup() 
+void setup()
 {
   Serial.begin(9600);
   delay(2000);
   mosfetSetup();
+  servoSetup();
   pidSetup();
   sensorSetup();
   initTimings();
@@ -68,7 +72,7 @@ void loop()
     getDistance();
     sensorStart = millis();
   }
-  
+
   move();
 
   if(currentTime - targetStart > targetTiming) {
@@ -89,15 +93,21 @@ void loop()
 
 
 void mosfetSetup() {
-  for (int i = 0; i < 2; i++) { 
+  for (int i = 0; i < 2; i++) {
     pinMode(MOSFETPins[i], OUTPUT);
     digitalWrite(MOSFETPins[i], LOW);
   }
 }
 
 
+void servoSetup() {
+  servo.attach(3);
+  servo.write(0);
+}
+
+
 void pidSetup() {
-  actuatorPID.SetOutputLimits(0, stroke);
+  actuatorPID.SetOutputLimits(-90, 90);
   actuatorPID.SetMode(AUTOMATIC);
 }
 
@@ -142,12 +152,13 @@ void getDistance() {
 
 
 void move() {
-  error = distance-target;
+  error = target-distance;
   actuatorPID.Compute();
-  if(distance < actuatorTarget - deadzone) {
+  setServo();
+  if(actuatorTarget > deadzone) {
     stopRetracting();
     extend();
-  } else if(distance > actuatorTarget + deadzone) {
+  } else if(actuatorTarget < -deadzone) {
     stopExtending();
     retract();
   } else {
@@ -194,6 +205,18 @@ void getTarget() {
     target = Serial.parseInt();
     Serial.read();
   }
+}
+
+
+void setServo() {
+  int deg = actuatorTarget;
+  if(deg < 0) {
+    deg = -deg;
+  }
+  if(deg > 90){
+    deg = 90;
+  }
+  servo.write(90 - deg);
 }
 
 
